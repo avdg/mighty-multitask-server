@@ -12,7 +12,9 @@
     "url": "git+https://github.com/avdg/mighty-multitask-server.git"
   },
   "dependencies": {
-    "@mighty-multitask-server/boot": "file:./lib/mighty-multitask-server/boot"},
+    "@mighty-multitask-server/boot": "file:./lib/mighty-multitask-server/boot",
+    "lodash.merge": "^4.6.2"
+  },
   "author": "Anthony Van de Gejuchte",
   "license": "UNLICENSED",
   "bugs": {

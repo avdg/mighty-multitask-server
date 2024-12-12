@@ -6,4 +6,4 @@ if (import.meta.url !== `file:///${ process.argv[1].replace(/\\/g, '/').replace(
     process.exit(1);
 }
 
-boot(pathJoin(dirname(import.meta.url.replace(/^file:\/+/, '')), 'src/app'));
+boot(pathJoin(dirname(import.meta.url.replace(/^file:\/+/, '/')), 'src/app'));
