@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@mighty-multitask-server/boot": "file:./lib/mighty-multitask-server/boot",
+    "@mighty-multitask-server/webserver-util": "file:./lib/mighty-multitask-server/webserver-util",
     "lodash.merge": "^4.6.2"
   },
   "author": "Anthony Van de Gejuchte",
