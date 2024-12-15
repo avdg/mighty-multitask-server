@@ -1,4 +1,4 @@
-import { join as pathJoin, dirname } from 'path';
+import { join as pathJoin } from 'path';
 import { boot } from '@mighty-multitask-server/boot';
 
 if (import.meta.filename !== process.argv[1]) {
