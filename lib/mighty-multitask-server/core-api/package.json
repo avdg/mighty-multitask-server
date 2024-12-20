@@ -1,0 +1,23 @@
+{
+    "name": "@mighty-multitask-server/core-api",
+    "version": "0.1.0",
+    "type": "module",
+    "description": "Mighty multitask server - core-api module",
+    "main": "index.js",
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/avdg/mighty-multitask-server.git"
+    },
+    "dependencies": {
+      "@mighty-multitask-server/webserver-util": "file:./lib/mighty-multitask-server/webserver-util"
+    },
+    "author": "Anthony Van de Gejuchte",
+    "license": "UNLICENSED",
+    "bugs": {
+      "url": "https://github.com/avdg/mighty-multitask-server/issues"
+    },
+    "homepage": "https://github.com/avdg/mighty-multitask-server#readme"
+  }

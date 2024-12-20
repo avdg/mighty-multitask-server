@@ -5,6 +5,9 @@ export default {
         'appPaths': [
             pathJoin(import.meta.dirname, '../code'),
         ],
+        'appPackages': [
+            '@mighty-multitask-server/core-api',
+        ],
         'excludedModules': [],
     },
     webserver: {
