@@ -14,4 +14,5 @@ export default {
         hostname: 'localhost',
         port: 43211,
     },
+    varDir: pathJoin(import.meta.dirname, '../../../var'),
 }
