@@ -16,7 +16,7 @@
     "@mighty-multitask-server/boot": "file:./lib/mighty-multitask-server/boot",
     "@mighty-multitask-server/core-api": "file:./lib/mighty-multitask-server/core-api",
     "@mighty-multitask-server/webserver-util": "file:./lib/mighty-multitask-server/webserver-util",
-    "lodash.merge": "^4.6.2"
+    "lodash.mergewith": "^4.6.2"
   },
   "author": "Anthony Van de Gejuchte",
   "license": "UNLICENSED",
