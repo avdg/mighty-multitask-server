@@ -18,7 +18,8 @@ There are three types of migrations:
               If a table or column is missing and is defined inside these configurations, it will be always be created.
 - Db migration patches: These are small functions that can be run to change the structure of the db.
                         The name of the patch should be unique because the name is stored in the migration tracker.
-                        Once a patch is run, it will not be run again.
+                        Once a patch has been run succesfully, it will not be run again except if the patch callback
+                        returned false.
 - Db migration scripts: These are scripts that can be run to change the structure of the db.
                         These scripts should be bundled with a version number.
                         Only scripts with a higher version number than the current version will be run.
