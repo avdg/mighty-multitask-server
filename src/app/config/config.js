@@ -7,6 +7,7 @@ export default {
         ],
         'appPackages': [
             '@mighty-multitask-server/core-api',
+            '@mighty-multitask-server/admin-panel',
         ],
         'excludedModules': [],
     },

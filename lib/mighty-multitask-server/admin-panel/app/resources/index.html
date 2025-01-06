@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin backend</title>
+</head>
+<body>
+</body>
+<script>
+    const loadModules = async () => {
+        const dependencies = {
+            app: new URL('app/main.js', window.location.origin).href,
+        };
+
+        const promises = Object.keys(dependencies).map((key) => {
+            return import(dependencies[key]).then((module) => {
+                return {
+                    name: key,
+                    module
+                }
+            });
+        });
+
+        return Promise.allSettled(promises).then((results) => {
+            const modules = {};
+            results.forEach((module) => {
+                if (module.status === 'fulfilled') {
+                    modules[module.value.name] = module.value.module;
+                } else if (module.status === 'rejected') {
+                    console.error(module.reason);
+                }
+            });
+
+            window.modules = modules;
+        });
+    };
+
+    (function() {
+        loadModules().then(() => {
+            window.modules.app.bootstrap();
+        });
+    })();
+</script>
+</html>

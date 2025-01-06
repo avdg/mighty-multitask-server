@@ -1,0 +1,24 @@
+{
+    "name": "@mighty-multitask-server/admin-panel",
+    "version": "0.1.0",
+    "type": "module",
+    "description": "Mighty multitask server - admin-panel module",
+    "main": "index.js",
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/avdg/mighty-multitask-server.git"
+    },
+    "dependencies": {
+      "@mighty-multitask-server/webserver-util": "file:./lib/mighty-multitask-server/webserver-util",
+      "@mighty-multitask-server/core-api": "file:./lib/mighty-multitask-server/core-api"
+    },
+    "author": "Anthony Van de Gejuchte",
+    "license": "UNLICENSED",
+    "bugs": {
+      "url": "https://github.com/avdg/mighty-multitask-server/issues"
+    },
+    "homepage": "https://github.com/avdg/mighty-multitask-server#readme"
+  }
