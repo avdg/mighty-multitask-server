@@ -12,7 +12,7 @@ export default {
     },
     webserver: {
         hostname: 'localhost',
-        port: 43211,
+        port: 80,
     },
     varDir: pathJoin(import.meta.dirname, '../../../var'),
 }
