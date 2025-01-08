@@ -11,8 +11,8 @@ export default {
         'excludedModules': [],
     },
     webserver: {
-        hostname: 'localhost',
-        port: 80,
+        hostname: '0.0.0.0',
+        port: process.env.PORT || 43211,
     },
     varDir: pathJoin(import.meta.dirname, '../../../var'),
 }
