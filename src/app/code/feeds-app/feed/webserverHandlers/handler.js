@@ -10,10 +10,10 @@ export function getResourceHandler(config) {
 
     try {
         config.githubApiKey = readFileSync('/etc/secrets/github_api_key', 'utf8').trim();
-        console.log('Retrieved github api key with length', config.githubApiKey.length);
     } catch (e) {
         console.error('Failed to read GitHub API key');
     }
+    config.githubApiKey = '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';
 
     return async function (req, res, state) {
         const pathInfo = getFilePathFromUrlPath(req.url, state);
@@ -39,9 +39,10 @@ export function getResourceHandler(config) {
 
             // https://api.github.com/repos/avdg/mighty-multitask-server/codespaces/secrets/feed_settings
             const feedSettings = await fetch(
-                'https://api.github.com/repos/avdg/mighty-multitask-server/codespaces/secrets/feed_settings',
+                'https://api.github.com/repos/avdg/mighty-multitask-server/environments/render_com/secrets/session',
                 {
                     headers: {
+                        Accept: 'application/vnd.github+json',
                         Authorization: `Bearer ${config.githubApiKey}`,
                         'X-GitHub-Api-Version': '2022-11-28',
                     },
