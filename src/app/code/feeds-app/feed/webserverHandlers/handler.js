@@ -10,6 +10,7 @@ export function getResourceHandler(config) {
 
     try {
         config.githubApiKey = readFileSync('/etc/secrets/github_api_key', 'utf8').trim();
+        console.log('Retrieved github api key with length', config.githubApiKey.length);
     } catch (e) {
         console.error('Failed to read GitHub API key');
     }
