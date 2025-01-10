@@ -3,19 +3,20 @@ const stationsUrl = 'https://raw.githubusercontent.com/iRail/stations/refs/heads
 const alternativeStationFields = ['alternative-fr', 'alternative-nl', 'alternative-de', 'alternative-en'];
 
 export function bootstrap() {
-    loadAppContent()
-    showPickStation();
+    loadAppContent().then(() => {
+        showPickStation();
+    });
 }
 
 async function loadAppContent() {
-    globalThis.stations = await fetchStations()
-
     if (!document.getElementById('list_stations')) {
         const stationDatalist = document.createElement('datalist');
         stationDatalist.id = 'list_stations';
-
-        document.body.appendChild(stationDatalist);
+        
+        document.head.appendChild(stationDatalist);
     }
+
+    globalThis.stations = await fetchStations()
 }
 
 async function fetchStations() {
@@ -145,10 +146,10 @@ function autoCompleteStations(element, selectedStationHolder) {
 
         const stationListElement = document.getElementById('list_stations');
         while (stationListElement.lastChild) {
-            stationListElement.removeChild(stationListElement.lastChild, 5);
+            stationListElement.removeChild(stationListElement.lastChild);
         }
 
-        const results = getStationSuggestions(element.value);
+        const results = getStationSuggestions(element.value, 5);
 
         for (const result of results) {
             const option = document.createElement('option');

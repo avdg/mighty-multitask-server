@@ -4,8 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rail data</title>
+    <style>
+        @keyframes rainbow {
+            from {
+                color: #6666ff;
+            }
+            10% {
+                color: #0099ff;
+            }
+            20% {
+                color: #00ff00;
+            }
+            30% {
+                color: #ffcc00;
+            }
+            40% {
+                color: #ff6600;
+            }
+            50% {
+                color: #ff0000;
+            }
+            60% {
+                color: #ff0066;
+            }
+            70% {
+                color: #ff00ff;
+            }
+            80% {
+                color: #9900ff;
+            }
+            90% {
+                color: #6600ff;
+            }
+            to {
+                color: #6666ff;
+            }
+        }
+        #bootloader {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-size: 2rem;
+            font-family: Arial, Helvetica, sans-serif;
+
+            animation: rainbow 2s linear infinite;
+        }
+    </style>
 </head>
 <body>
+    <div id="bootloader">Loading all what you need...</div>
 </body>
 <script>
     const loadModules = async () => {
