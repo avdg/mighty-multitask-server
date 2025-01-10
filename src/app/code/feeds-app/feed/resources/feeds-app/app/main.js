@@ -157,8 +157,17 @@ function autoCompleteStations(element, selectedStationHolder) {
             stationListElement.appendChild(option);
         }
 
+        const currentInput = element.value.trim().toUpperCase().replace(/[\-']/g, ' ');
+        let matchingIndex = -1;
         if (results.length === 1) {
-            selectedStationHolder.value = results[0].name;
+            selectedStationHolder.innerText = results[0].name;
+        } else if (results.length > 1 && (
+            (matchingIndex = results.findIndex(
+                result => result.suggestion === currentInput
+                || result.suggestion.includes("(" + currentInput + ")")
+            )) > 0
+        )) {
+            selectedStationHolder.innerText = results[matchingIndex].name;
         } else if (selectedStationHolder.innerText.length > 0) {
             selectedStationHolder.innerText = '';
         }
