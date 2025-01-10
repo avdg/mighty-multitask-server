@@ -1,5 +1,6 @@
 // URI,name,alternative-fr,alternative-nl,alternative-de,alternative-en,taf-tap-code,telegraph-code,country-code,longitude,latitude,avg_stop_times,official_transfer_time
 const stationsUrl = 'https://raw.githubusercontent.com/iRail/stations/refs/heads/master/stations.csv';
+const embarkmentStatisticsUrl = 'https://raw.githubusercontent.com/iRail/stations/refs/heads/master/embarkment_statistics.csv';
 const alternativeStationFields = ['alternative-fr', 'alternative-nl', 'alternative-de', 'alternative-en'];
 
 export function bootstrap() {
@@ -16,7 +17,14 @@ async function loadAppContent() {
         document.head.appendChild(stationDatalist);
     }
 
-    globalThis.stations = await fetchStations()
+    await Promise.allSettled([
+        (async() => {
+            globalThis.stations = await fetchStations();
+        })(),
+        (async() => {
+            globalThis.embarkmentStatistics = await fetchEmbarkmentStatistics();
+        })(),
+    ]);
 }
 
 async function fetchStations() {
@@ -47,6 +55,43 @@ async function fetchStations() {
 
                 return station;
             });
+        });
+}
+
+async function fetchEmbarkmentStatistics() {
+    return fetch(embarkmentStatisticsUrl)
+        .then(response => response.text())
+        .then(text => {
+            const lines = text.split('\n');
+            const headers = lines[0].split(',');
+            const statistics = {};
+            
+            lines.slice(1).map(line => {
+                const values = line.split(',');
+                const rawStatistics = {};
+
+                headers.forEach((header, index) => {
+                    rawStatistics[header] = values[index];
+                });
+
+                statistics[rawStatistics.name] = {
+                    nmbs_short_name: rawStatistics.nmbs_short_name ?? undefined,
+                    average_weekday_embarkments: rawStatistics.average_weekday_embarkments ?
+                        (+(rawStatistics.average_weekday_embarkments.replace(/\./g, ''))) : undefined,
+                    average_saturday_embarkments: rawStatistics.average_saturday_embarkments ?
+                        (+(rawStatistics.average_saturday_embarkments.replace(/\./g, ''))) : undefined,
+                    average_sunday_embarkments: rawStatistics.average_sunday_embarkments ?
+                        (+(rawStatistics.average_sunday_embarkments.replace(/\./g, ''))) : undefined
+                };
+
+                statistics[rawStatistics.name].average_day_embarkments = Math.round((
+                    ((statistics[rawStatistics.name].average_weekday_embarkments ?? 0) * 5)
+                    + ((statistics[rawStatistics.name].average_saturday_embarkments ?? 0) * 1)
+                    + ((statistics[rawStatistics.name].average_sunday_embarkments ?? 0) * 1)
+                ) / 7);
+            });
+
+            return statistics;
         });
 }
 
@@ -93,6 +138,7 @@ export async function showPickStation() {
 
     stationInput.addEventListener('keyup', autoCompleteStations(stationInput, selectedStationHolder));
     stationInput.addEventListener('focus', autoCompleteStations(stationInput, selectedStationHolder));
+    stationInput.addEventListener('input', autoCompleteStations(stationInput, selectedStationHolder));
 }
 
 export function getStationSuggestions(searchString, resultCount) {
@@ -110,6 +156,7 @@ export function getStationSuggestions(searchString, resultCount) {
         if (stationName && stationName.includes(lookFor)) {
             stations.push({
                 name: station.name,
+                matchingName: stationName,
                 suggestion: stationName,
             });
             continue;
@@ -120,10 +167,11 @@ export function getStationSuggestions(searchString, resultCount) {
             if (!station[alternativeField]) {
                 continue;
             }
-            const alternativeName = station[alternativeField].replace(/[\-']/g, ' ');
+            const alternativeName = station[alternativeField].replace(/[\-']/g, ' ').toUpperCase();
             if (alternativeName && alternativeName.includes(lookFor)) {
                 stations.push({
                     name: station.name,
+                    matchingName: alternativeName,
                     suggestion: alternativeName.includes(lookFor) ? alternativeName : `${alternativeName.toUpperCase() } -> ${stationName}`,
                 });
                 alternatives[station.name] = alternativeName;
@@ -131,6 +179,13 @@ export function getStationSuggestions(searchString, resultCount) {
             }
         }
     }
+
+    stations.sort(function(a, b) {
+        const scoreA = window.embarkmentStatistics[a.name]?.average_day_embarkments ?? 0;
+        const scoreB = window.embarkmentStatistics[b.name]?.average_day_embarkments ?? 0;
+    
+        return scoreB - scoreA;
+    });
 
     return stations.slice(0, resultCount);
 }
@@ -160,16 +215,19 @@ function autoCompleteStations(element, selectedStationHolder) {
         const currentInput = element.value.trim().toUpperCase().replace(/[\-']/g, ' ');
         let matchingIndex = -1;
         if (results.length === 1) {
-            selectedStationHolder.innerText = results[0].name;
+            selectedStationHolder.innerText = results[0].matchingName;
+            selectedStationHolder.dataset.selectedStation = results[0].name;
         } else if (results.length > 1 && (
             (matchingIndex = results.findIndex(
                 result => result.suggestion === currentInput
                 || result.suggestion.includes("(" + currentInput + ")")
             )) > 0
         )) {
-            selectedStationHolder.innerText = results[matchingIndex].name;
+            selectedStationHolder.innerText = results[matchingIndex].matchingName;
+            selectedStationHolder.dataset.selectedStation = results[matchingIndex].name;
         } else if (selectedStationHolder.innerText.length > 0) {
             selectedStationHolder.innerText = '';
+            selectedStationHolder.dataset.selectedStation = undefined;
         }
 
         lastAutoCompletedStation = element.value;
