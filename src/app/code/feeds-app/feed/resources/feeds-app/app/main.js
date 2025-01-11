@@ -221,7 +221,7 @@ function autoCompleteStations(element, selectedStationHolder) {
             (matchingIndex = results.findIndex(
                 result => result.suggestion === currentInput
                 || result.suggestion.includes("(" + currentInput + ")")
-            )) > 0
+            )) >= 0
         )) {
             selectedStationHolder.innerText = results[matchingIndex].matchingName;
             selectedStationHolder.dataset.selectedStation = results[matchingIndex].name;
