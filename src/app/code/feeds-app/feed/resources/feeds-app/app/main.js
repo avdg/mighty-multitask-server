@@ -3,6 +3,9 @@ const stationsUrl = 'https://raw.githubusercontent.com/iRail/stations/refs/heads
 const embarkmentStatisticsUrl = 'https://raw.githubusercontent.com/iRail/stations/refs/heads/master/embarkment_statistics.csv';
 const alternativeStationFields = ['alternative-fr', 'alternative-nl', 'alternative-de', 'alternative-en'];
 
+const stationLiveboardCacheTtl = '30';
+const stationLiveboardCache = {};
+
 export function bootstrap() {
     loadAppContent().then(() => {
         showPickStation();
@@ -93,6 +96,98 @@ async function fetchEmbarkmentStatistics() {
 
             return statistics;
         });
+}
+
+async function updateLiveboardFromSelectedStation() {
+    const selectedStationHolder = document.getElementById('selectedStation');
+    if (!selectedStationHolder.dataset.selectedStation) {
+        return;
+    }
+
+    const liveboardResults = await fetchLiveboard(selectedStationHolder.dataset.selectedStation);
+
+    const timeTableElement = document.getElementById('timetable');
+    const timeTableBodyElement = timeTableElement.querySelector('tbody');
+    while (timeTableBodyElement.firstChild) {
+        timeTableBodyElement.removeChild(timeTableBodyElement.firstChild);
+    }
+
+    const timeTableMessagesElement = document.getElementById('timetable-messages');
+
+    if (liveboardResults.error || !liveboardResults.departures?.departure) {
+        timeTableMessagesElement.innerText = liveboardResults.error;
+        timeTableBodyElement.innerHTML = '';
+
+        if (!liveboardResults.error) {
+            hideLiveboard();
+        }
+
+        return;
+    }
+
+    timeTableMessagesElement.innerText = '';
+    timeTableBodyElement.innerHTML = '';
+
+    for (const departure of liveboardResults.departures.departure) {
+        const row = document.createElement('tr');
+
+        const timeCell = document.createElement('td');
+        timeCell.innerText = JSON.stringify(departure);
+        row.appendChild(timeCell);
+
+        timeTableBodyElement.appendChild(row);
+    }
+
+    timeTableElement.classList.remove('not-visible');
+}
+
+function hideLiveboard() {
+    const liveboardElement = document.getElementById('timetable');
+    if (!liveboardElement) {
+        return;
+    }
+
+    liveboardElement.classList.add('not-visible');
+
+    const timeTableBody = liveboardElement.querySelector('tbody');
+    while (timeTableBody.firstChild) {
+        timeTableBody.removeChild(timeTableBody.firstChild);
+    }
+}
+
+async function fetchLiveboard(station, settings) {
+    const params = {
+        station: station,
+        alerts: true,
+        format: 'json',
+    }
+
+    if (stationLiveboardCache[station] && stationLiveboardCache[station].ttl > Date.now()) {
+        return stationLiveboardCache[station].data;
+    }
+
+    const url = new URL('https://api.irail.be/v1/liveboard/');
+    url.search = new URLSearchParams(params).toString();
+
+    const requestedAt = Date.now();
+    const results = await fetch(url);
+
+    let finalResults = null;
+    if (!results.ok) {
+        finalResults = {
+            error: results.statusText,
+        };
+    } else {
+        finalResults = await results.json();
+    }
+
+    stationLiveboardCache[station] = {
+        data: finalResults,
+        ttl: Date.now() + (stationLiveboardCacheTtl * 1000),
+        requestedAt,
+    };
+
+    return finalResults;
 }
 
 /***** content loaders *****/
@@ -217,6 +312,7 @@ function autoCompleteStations(element, selectedStationHolder) {
         if (results.length === 1) {
             selectedStationHolder.innerText = results[0].matchingName;
             selectedStationHolder.dataset.selectedStation = results[0].name;
+            updateLiveboardFromSelectedStation();
         } else if (results.length > 1 && (
             (matchingIndex = results.findIndex(
                 result => result.suggestion === currentInput
@@ -225,9 +321,11 @@ function autoCompleteStations(element, selectedStationHolder) {
         )) {
             selectedStationHolder.innerText = results[matchingIndex].matchingName;
             selectedStationHolder.dataset.selectedStation = results[matchingIndex].name;
+            updateLiveboardFromSelectedStation();
         } else if (selectedStationHolder.innerText.length > 0) {
             selectedStationHolder.innerText = '';
             selectedStationHolder.dataset.selectedStation = undefined;
+            hideLiveboard();
         }
 
         lastAutoCompletedStation = element.value;
