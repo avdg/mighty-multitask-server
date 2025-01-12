@@ -163,6 +163,20 @@ export async function loadContent(templateUrl) {
     document.body.appendChild(content.body);
 }
 
+/***** helpers *****/
+export function normalizeStationName(stationName) {
+    return stationName
+    .trim()
+    .toUpperCase()
+    .replace(/[\-']/g, ' ')
+    .replace(/[ÂÀÁ]/g, 'A')
+    .replace(/[ÉÈÊË]/g, 'E')
+    .replace(/[ÎÍ]/g, 'I')
+    .replace(/[ÔÖ]/g, 'O')
+    .replace(/[ÜÛ]/g, 'U')
+    .replace(/Ž/g, 'Z');
+}
+
 /***** app *****/
 
 export async function showPickStation() {
@@ -271,10 +285,10 @@ export function getStationSuggestions(searchString, resultCount) {
     const stations = [];
     const alternatives = {};
 
-    const lookFor = searchString.trim().toUpperCase().replace().replace(/[\-']/g, ' ');
+    const lookFor = normalizeStationName(searchString);
     for (const station of globalThis.stations) {
         // Check main station name
-        const stationName = (station.name ?? '').replace(/[\-']/g, ' ').toUpperCase();
+        const stationName = normalizeStationName(station.name ?? '');
         if (stationName && stationName.includes(lookFor)) {
             stations.push({
                 name: station.name,
@@ -334,7 +348,7 @@ function autoCompleteStations(element, selectedStationHolder) {
             stationListElement.appendChild(option);
         }
 
-        const currentInput = element.value.trim().toUpperCase().replace(/[\-']/g, ' ');
+        const currentInput = normalizeStationName(element.value);
         let matchingIndex = -1;
         if (results.length === 1) {
             selectedStationHolder.innerText = results[0].matchingName;
