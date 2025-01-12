@@ -224,7 +224,12 @@ async function updateLiveboardFromSelectedStation() {
     }
 
     timeTableMessagesElement.innerText = '';
-    timeTableUpdateTimestampElement.innerText = liveboardResults ? new Date(liveboardResults.requestedAt).toLocaleString() : '';
+    timeTableUpdateTimestampElement.innerText = liveboardResults
+        ? (
+            'Updated at: ' + new Date(liveboardResults.requestedAt).toLocaleTimeString()
+            + ' on ' + new Date(liveboardResults.requestedAt).toLocaleDateString()
+        )
+        : '';
 
     for (const departure of liveboardResults.data.departures.departure) {
         const row = document.createElement('tr');
