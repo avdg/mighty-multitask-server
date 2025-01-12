@@ -30,6 +30,8 @@ async function loadAppContent() {
     ]);
 }
 
+/***** external data fetchers *****/
+
 async function fetchStations() {
     return fetch(stationsUrl)
         .then(response => response.text())
@@ -96,6 +98,87 @@ async function fetchEmbarkmentStatistics() {
 
             return statistics;
         });
+}
+
+async function fetchLiveboard(station, settings) {
+    const params = {
+        station: station,
+        alerts: true,
+        format: 'json',
+    }
+
+    if (stationLiveboardCache[station] && stationLiveboardCache[station].ttl > Date.now()) {
+        return stationLiveboardCache[station];
+    }
+
+    const url = new URL('https://api.irail.be/v1/liveboard/');
+    url.search = new URLSearchParams(params).toString();
+
+    const requestedAt = Date.now();
+    const results = await fetch(url);
+
+    let finalResults = null;
+    if (!results.ok) {
+        finalResults = {
+            error: results.statusText,
+        };
+    } else {
+        finalResults = await results.json();
+    }
+
+    stationLiveboardCache[station] = {
+        data: finalResults,
+        ttl: Date.now() + (stationLiveboardCacheTtl * 1000),
+        requestedAt,
+    };
+
+    return stationLiveboardCache[station];
+}
+
+/***** content loaders *****/
+
+export async function loadHtmlTemplate(templateUrl) {
+    const response = await fetch(templateUrl);
+    const html = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const content = doc.getElementById('content');
+
+    if (!content) {
+        throw new Error('Template does not contain an element with id `content`');
+    }
+
+    return {
+        body: content,
+    }
+}
+
+export async function loadContent(templateUrl) {
+    const content = await loadHtmlTemplate(templateUrl);
+    
+    // clear body
+    document.body.innerHTML = '';
+
+    // append content
+    document.body.appendChild(content.body);
+}
+
+/***** app *****/
+
+export async function showPickStation() {
+    await loadContent(
+        new URL(
+            'templates/pickStation.html',
+            import.meta.url
+        ).href
+    );
+
+    const stationInput = document.getElementById('stationInput');
+    const selectedStationHolder = document.getElementById('selectedStation');
+
+    stationInput.addEventListener('keyup', autoCompleteStations(stationInput, selectedStationHolder));
+    stationInput.addEventListener('focus', autoCompleteStations(stationInput, selectedStationHolder));
+    stationInput.addEventListener('input', autoCompleteStations(stationInput, selectedStationHolder));
 }
 
 async function updateLiveboardFromSelectedStation() {
@@ -178,87 +261,6 @@ function hideLiveboard() {
     while (timeTableBody.firstChild) {
         timeTableBody.removeChild(timeTableBody.firstChild);
     }
-}
-
-async function fetchLiveboard(station, settings) {
-    const params = {
-        station: station,
-        alerts: true,
-        format: 'json',
-    }
-
-    if (stationLiveboardCache[station] && stationLiveboardCache[station].ttl > Date.now()) {
-        return stationLiveboardCache[station];
-    }
-
-    const url = new URL('https://api.irail.be/v1/liveboard/');
-    url.search = new URLSearchParams(params).toString();
-
-    const requestedAt = Date.now();
-    const results = await fetch(url);
-
-    let finalResults = null;
-    if (!results.ok) {
-        finalResults = {
-            error: results.statusText,
-        };
-    } else {
-        finalResults = await results.json();
-    }
-
-    stationLiveboardCache[station] = {
-        data: finalResults,
-        ttl: Date.now() + (stationLiveboardCacheTtl * 1000),
-        requestedAt,
-    };
-
-    return stationLiveboardCache[station];
-}
-
-/***** content loaders *****/
-
-export async function loadHtmlTemplate(templateUrl) {
-    const response = await fetch(templateUrl);
-    const html = await response.text();
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const content = doc.getElementById('content');
-
-    if (!content) {
-        throw new Error('Template does not contain an element with id `content`');
-    }
-
-    return {
-        body: content,
-    }
-}
-
-export async function loadContent(templateUrl) {
-    const content = await loadHtmlTemplate(templateUrl);
-    
-    // clear body
-    document.body.innerHTML = '';
-
-    // append content
-    document.body.appendChild(content.body);
-}
-
-/***** app *****/
-
-export async function showPickStation() {
-    await loadContent(
-        new URL(
-            'templates/pickStation.html',
-            import.meta.url
-        ).href
-    );
-
-    const stationInput = document.getElementById('stationInput');
-    const selectedStationHolder = document.getElementById('selectedStation');
-
-    stationInput.addEventListener('keyup', autoCompleteStations(stationInput, selectedStationHolder));
-    stationInput.addEventListener('focus', autoCompleteStations(stationInput, selectedStationHolder));
-    stationInput.addEventListener('input', autoCompleteStations(stationInput, selectedStationHolder));
 }
 
 export function getStationSuggestions(searchString, resultCount) {
