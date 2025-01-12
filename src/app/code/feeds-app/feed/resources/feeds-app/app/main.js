@@ -31,6 +31,22 @@ async function loadAppContent() {
     ]);
 }
 
+/***** rate limit controller for external data fetchers *****/
+
+const rateLimitIrailApiPerSec = 3;
+let currentAllowedRate = rateLimitIrailApiPerSec;
+async function rateLimitIrailApi(callback) {
+    while (currentAllowedRate <= 0) {
+        await sleep(1000);
+    }
+
+    currentAllowedRate--;
+    setTimeout(() => {
+        currentAllowedRate++;
+    }, 1000);
+    return await callback();
+}
+
 /***** external data fetchers *****/
 
 async function fetchStations() {
@@ -116,7 +132,7 @@ async function fetchLiveboard(station, settings) {
     url.search = new URLSearchParams(params).toString();
 
     const requestedAt = Date.now();
-    const results = await fetch(url);
+    const results = await rateLimitIrailApi(() => fetch(url));
 
     let finalResults = null;
     if (!results.ok) {
@@ -165,6 +181,10 @@ export async function loadContent(templateUrl) {
 }
 
 /***** helpers *****/
+export function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export function normalizeStationName(stationName) {
     return stationName
     .trim()
