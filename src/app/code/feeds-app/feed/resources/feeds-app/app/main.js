@@ -34,7 +34,7 @@ async function fetchStations() {
     return fetch(stationsUrl)
         .then(response => response.text())
         .then(text => {
-            const lines = text.split('\n');
+            const lines = text.trim().split('\n');
             const headers = lines[0].split(',');
 
             return lines.slice(1).map(line => {
@@ -65,7 +65,7 @@ async function fetchEmbarkmentStatistics() {
     return fetch(embarkmentStatisticsUrl)
         .then(response => response.text())
         .then(text => {
-            const lines = text.split('\n');
+            const lines = text.trim().split('\n');
             const headers = lines[0].split(',');
             const statistics = {};
             
