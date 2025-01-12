@@ -105,20 +105,20 @@ async function updateLiveboardFromSelectedStation() {
     }
 
     const liveboardResults = await fetchLiveboard(selectedStationHolder.dataset.selectedStation);
+    console.log(liveboardResults);
 
     const timeTableElement = document.getElementById('timetable');
     const timeTableBodyElement = timeTableElement.querySelector('tbody');
-    while (timeTableBodyElement.firstChild) {
-        timeTableBodyElement.removeChild(timeTableBodyElement.firstChild);
-    }
-
     const timeTableMessagesElement = document.getElementById('timetable-messages');
+    const timeTableUpdateTimestampElement = document.getElementById('timetable-update-time');
+    timeTableBodyElement.innerHTML = '';
 
-    if (liveboardResults.error || !liveboardResults.departures?.departure) {
-        timeTableMessagesElement.innerText = liveboardResults.error;
-        timeTableBodyElement.innerHTML = '';
 
-        if (!liveboardResults.error) {
+    if (liveboardResults.data.error || !liveboardResults.data.departures?.departure) {
+        timeTableMessagesElement.innerText = liveboardResults.data.error;
+        timeTableUpdateTimestampElement.innerText = liveboardResults.data.requestedAt ? new Date(liveboardResults.data.requestedAt).toLocaleString() : '';
+
+        if (!liveboardResults.data.error) {
             hideLiveboard();
         }
 
@@ -126,14 +126,39 @@ async function updateLiveboardFromSelectedStation() {
     }
 
     timeTableMessagesElement.innerText = '';
-    timeTableBodyElement.innerHTML = '';
+    timeTableUpdateTimestampElement.innerText = liveboardResults ? new Date(liveboardResults.requestedAt).toLocaleString() : '';
 
-    for (const departure of liveboardResults.departures.departure) {
+    for (const departure of liveboardResults.data.departures.departure) {
         const row = document.createElement('tr');
 
-        const timeCell = document.createElement('td');
-        timeCell.innerText = JSON.stringify(departure);
-        row.appendChild(timeCell);
+        const cellTime = document.createElement('td');
+        cellTime.innerText = departure.time ? new Date(departure.time * 1000).toLocaleTimeString(
+            undefined,
+            {hour: '2-digit', minute: '2-digit'}
+        ) : '';
+        row.appendChild(cellTime);
+
+        const cellPlatform = document.createElement('td');
+        if (departure.canceled !== '1') {
+            cellPlatform.innerText = departure.platform ?? '';
+        }
+
+        if (departure.platforminfo?.normal === '0') {
+            cellPlatform.classList.add('different-platform');
+        }
+
+        row.appendChild(cellPlatform);
+
+        const cellTrainType = document.createElement('td');
+        cellTrainType.innerText = departure.vehicleinfo?.type ?? '';
+        row.appendChild(cellTrainType);
+
+        const cellDestination = document.createElement('td');
+        cellDestination.innerText = departure.stationinfo?.standardname ?? '';
+        if (departure.canceled === '1') {
+            cellDestination.classList.add('canceled-destination');
+        }
+        row.appendChild(cellDestination);
 
         timeTableBodyElement.appendChild(row);
     }
@@ -163,7 +188,7 @@ async function fetchLiveboard(station, settings) {
     }
 
     if (stationLiveboardCache[station] && stationLiveboardCache[station].ttl > Date.now()) {
-        return stationLiveboardCache[station].data;
+        return stationLiveboardCache[station];
     }
 
     const url = new URL('https://api.irail.be/v1/liveboard/');
@@ -187,7 +212,7 @@ async function fetchLiveboard(station, settings) {
         requestedAt,
     };
 
-    return finalResults;
+    return stationLiveboardCache[station];
 }
 
 /***** content loaders *****/
