@@ -230,10 +230,27 @@ async function updateLiveboardFromSelectedStation() {
         const row = document.createElement('tr');
 
         const cellTime = document.createElement('td');
-        cellTime.innerText = departure.time ? new Date(departure.time * 1000).toLocaleTimeString(
+        let cellTimeContent = departure.time ? new Date(departure.time * 1000).toLocaleTimeString(
             undefined,
             {hour: '2-digit', minute: '2-digit'}
         ) : '';
+        if (departure.delay > 0) {
+            cellTime.classList.add('delayed');
+            const minutes = Math.floor(departure.delay / 60);
+            const seconds = departure.delay % 60;
+            const estimatedDepartureTime = new Date(((+departure.time) + (+departure.delay)) * 1000);
+            if (seconds > 0) {
+                cellTimeContent += ` +${minutes}m ${seconds}s)`;
+            } else {
+                cellTimeContent += ` +${minutes}m)`;
+            }
+
+            cellTimeContent = `${estimatedDepartureTime.toLocaleTimeString(
+                undefined,
+                {hour: '2-digit', minute: '2-digit'}
+            )} <br>(${cellTimeContent}`;
+        }
+        cellTime.innerHTML = cellTimeContent;
         row.appendChild(cellTime);
 
         const cellPlatform = document.createElement('td');
