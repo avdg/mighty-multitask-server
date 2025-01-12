@@ -289,12 +289,12 @@ export function getStationSuggestions(searchString, resultCount) {
     const lookFor = normalizeStationName(searchString);
     for (const station of globalThis.stations) {
         // Check main station name
-        const stationName = normalizeStationName(station.name ?? '');
-        if (stationName && stationName.includes(lookFor)) {
+        const stationNameNormalized = normalizeStationName(station.name ?? '');
+        if (stationNameNormalized && stationNameNormalized.includes(lookFor)) {
             stations.push({
                 name: station.name,
-                matchingName: stationName,
-                suggestion: stationName,
+                matchingName: stationNameNormalized,
+                suggestion: stationNameNormalized,
             });
             continue;
         }
@@ -304,14 +304,14 @@ export function getStationSuggestions(searchString, resultCount) {
             if (!station[alternativeField]) {
                 continue;
             }
-            const alternativeName = station[alternativeField].replace(/[\-']/g, ' ').toUpperCase();
-            if (alternativeName && alternativeName.includes(lookFor)) {
+            const alternativeNameFormatted = station[alternativeField].replace(/[\-']/g, ' ').toUpperCase();
+            if (alternativeNameFormatted && alternativeNameFormatted.includes(lookFor)) {
                 stations.push({
                     name: station.name,
-                    matchingName: alternativeName,
-                    suggestion: alternativeName.includes(lookFor) ? alternativeName : `${alternativeName.toUpperCase() } -> ${stationName}`,
+                    matchingName: alternativeNameFormatted,
+                    suggestion: station[alternativeField].includes(lookFor) ? station[alternativeField] : `${alternativeNameFormatted.toUpperCase() } -> ${station.name.toUpperCase()}`,
                 });
-                alternatives[station.name] = alternativeName;
+                alternatives[station.name] = alternativeNameFormatted;
                 break;
             }
         }
