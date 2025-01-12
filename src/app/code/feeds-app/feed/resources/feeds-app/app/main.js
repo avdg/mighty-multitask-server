@@ -4,6 +4,7 @@ const embarkmentStatisticsUrl = 'https://raw.githubusercontent.com/iRail/station
 const alternativeStationFields = ['alternative-fr', 'alternative-nl', 'alternative-de', 'alternative-en'];
 
 const stationLiveboardCacheTtl = '30';
+const stationLiveboardUpdateInterval = '60';
 const stationLiveboardCache = {};
 
 export function bootstrap() {
@@ -196,11 +197,16 @@ export async function showPickStation() {
     stationInput.addEventListener('input', autoCompleteStations(stationInput, selectedStationHolder));
 }
 
+let lastLiveboardUpdate = 0;
+let lastSelectedStation = '';
 async function updateLiveboardFromSelectedStation() {
     const selectedStationHolder = document.getElementById('selectedStation');
     if (!selectedStationHolder.dataset.selectedStation) {
         return;
     }
+
+    lastSelectedStation = selectedStationHolder.dataset.selectedStation;
+    lastLiveboardUpdate = Date.now();
 
     const liveboardResults = await fetchLiveboard(selectedStationHolder.dataset.selectedStation);
     console.log(liveboardResults);
@@ -284,6 +290,20 @@ async function updateLiveboardFromSelectedStation() {
     }
 
     timeTableElement.classList.remove('not-visible');
+
+    setTimeout(() => {
+        autoRefreshLiveboard(selectedStationHolder.dataset.selectedStation);
+    }, stationLiveboardUpdateInterval * 1000);
+}
+
+function autoRefreshLiveboard(station) {
+    if (lastSelectedStation !== station ||
+        Date.now() - lastLiveboardUpdate < stationLiveboardUpdateInterval * 1000
+    ) {
+        return;
+    }
+
+    updateLiveboardFromSelectedStation();
 }
 
 function hideLiveboard() {
