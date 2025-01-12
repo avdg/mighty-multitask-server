@@ -269,6 +269,7 @@ async function updateLiveboardFromSelectedStation() {
             cellPlatform.innerText = departure.platform ?? '';
         }
 
+        cellPlatform.classList.add('column-platform-content');
         if (departure.platforminfo?.normal === '0') {
             cellPlatform.classList.add('different-platform');
         }

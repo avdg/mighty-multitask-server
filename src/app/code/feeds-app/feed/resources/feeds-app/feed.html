@@ -59,16 +59,22 @@
         .not-visible {
             visibility: hidden;
         }
-        .different-platform {
-            background-color: #ff0000;
-            color: #ffffff;
-        }
         .canceled-destination {
             text-decoration: line-through;
             color: #ff0000;
         }
         .delayed {
             color: #ff0000;
+        }
+        .column-platform-content {
+            border-radius: 3px;
+            background-color: #cccccc;
+
+            text-align: center;
+        }
+        .different-platform { /* should be defined after .column-platform-content */
+            background-color: #ff0000;
+            color: #ffffff;
         }
     </style>
 </head>
