@@ -174,7 +174,8 @@ export function normalizeStationName(stationName) {
     .replace(/[ÎÍ]/g, 'I')
     .replace(/[ÔÖ]/g, 'O')
     .replace(/[ÜÛ]/g, 'U')
-    .replace(/Ž/g, 'Z');
+    .replace(/Ž/g, 'Z')
+    .replace(/Œ/g, 'OE');
 }
 
 /***** app *****/
