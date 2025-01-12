@@ -118,14 +118,14 @@ async function fetchEmbarkmentStatistics() {
 }
 
 async function fetchLiveboard(station, settings) {
+    if (stationLiveboardCache[station] && stationLiveboardCache[station].ttl > Date.now()) {
+        return stationLiveboardCache[station];
+    }
+
     const params = {
         station: station,
         alerts: true,
         format: 'json',
-    }
-
-    if (stationLiveboardCache[station] && stationLiveboardCache[station].ttl > Date.now()) {
-        return stationLiveboardCache[station];
     }
 
     const url = new URL('https://api.irail.be/v1/liveboard/');
@@ -150,6 +150,47 @@ async function fetchLiveboard(station, settings) {
     };
 
     return stationLiveboardCache[station];
+}
+
+const CACHE_KEY_VEHICLE_COMPOSITION_PREFIX = 'vehicle_composition_';
+const CACHE_KEY_VEHICLE_COMPOSITION_TTL = 10 * 60 * 1000;
+async function fetchVehicleComposition(vehicleId) {
+    // Use an Object that can simluate localStorage if no localStorage is available
+    const storage = getSessionStorage();
+
+    if (storage.getItem(CACHE_KEY_VEHICLE_COMPOSITION_PREFIX + vehicleId)) {
+        const result = JSON.parse(storage.getItem(CACHE_KEY_VEHICLE_COMPOSITION_PREFIX + vehicleId));
+
+        if (result.ttl > Date.now()) {
+            return result;
+        }
+
+        storage.removeItem(CACHE_KEY_VEHICLE_COMPOSITION_PREFIX + vehicleId);
+    }
+
+    const params = {
+        id: vehicleId,
+        format: 'json',
+    }
+
+    const url = new URL('https://api.irail.be/v1/composition/');
+    url.search = new URLSearchParams(params).toString();
+
+    const requestedAt = Date.now();
+    const results = await rateLimitIrailApi(() => fetch(url));
+    const finalResults = await results.json();
+
+    const cacheData = {
+        data: finalResults,
+        ttl: Date.now() + (
+            results.ok ? CACHE_KEY_VEHICLE_COMPOSITION_TTL : 60 * 1000
+        ),
+        requestedAt,
+    };
+
+    storage.setItem(CACHE_KEY_VEHICLE_COMPOSITION_PREFIX + vehicleId, JSON.stringify(cacheData));
+
+    return cacheData;
 }
 
 /***** content loaders *****/
@@ -197,6 +238,25 @@ export function normalizeStationName(stationName) {
     .replace(/[ÜÛ]/g, 'U')
     .replace(/Ž/g, 'Z')
     .replace(/Œ/g, 'OE');
+}
+
+export function getSessionStorage() {
+    return window.localStorage || (function() {
+        if (window.alternativeLocalStorage) {
+            return window.alternativeLocalStorage;
+        }
+
+        const storage = {};
+        storage.getItem = function(key) {
+            return storage[key];
+        };
+        storage.setItem = function(key, value) {
+            storage[key] = value;
+        }
+
+        window.alternativeLocalStorage = storage;
+        return storage;
+    })();
 }
 
 /***** app *****/
@@ -307,6 +367,7 @@ async function updateLiveboardFromSelectedStation() {
         }
         row.appendChild(cellDestination);
 
+        row.dataset.vehicleId = departure.vehicle;
         timeTableBodyElement.appendChild(row);
     }
 
@@ -315,6 +376,28 @@ async function updateLiveboardFromSelectedStation() {
     setTimeout(() => {
         autoRefreshLiveboard(selectedStationHolder.dataset.selectedStation);
     }, stationLiveboardUpdateInterval * 1000);
+
+    // TMP code
+    let bestId = null;
+    for (const departure of liveboardResults.data.departures.departure) {
+        if (departure.canceled === '1') {
+            continue;
+        }
+
+        if (departure.vehicleinfo?.type === 'BUS') {
+            continue;
+        }
+
+        bestId = departure.vehicle;
+        break;
+    }
+
+    if (bestId) {
+        const vehicleComposition = await fetchVehicleComposition(bestId);
+        console.log(vehicleComposition);
+        const parsedVehicleCompositionData = parseCompositionData(vehicleComposition.data);
+        console.log(parsedVehicleCompositionData);
+    }
 }
 
 function autoRefreshLiveboard(station) {
@@ -435,4 +518,59 @@ function autoCompleteStations(element, selectedStationHolder) {
 
         lastAutoCompletedStation = element.value;
     }
+}
+
+function parseCompositionData(data) {
+    const compositionOutput = [];
+
+    const segments = data?.composition?.segments?.segment;
+
+    if (!segments) {
+        return compositionOutput;
+    }
+
+    for (const segment of segments) {
+        if (!segment || !segment.composition || !segment.composition.units?.unit) {
+            continue;
+        }
+
+        const segmentData = {
+            origin: segment.origin.standardname,
+            destination: segment.destination.standardname,
+            units: [],
+        };
+
+        for (const unit of segment.composition.units.unit) {
+            segmentData.units.push({
+                materialType: unit.materialType,
+                materialProperties: {
+                    materialNumber: unit.materialNumber,
+                    materialSubTypeName: unit.materialSubTypeName,
+                    tractionType: unit.tractionType,
+                    lengthInMeter: unit.lengthInMeter,
+                    seatsFirstClass: unit.seatsFirstClass,
+                    seatsCoupeFirstClass: unit.seatsCoupeFirstClass,
+                    standingPlacesFirstClass: unit.standingPlacesFirstClass,
+                    seatsSecondClass: unit.seatsSecondClass,
+                    seatsCoupeSecondClass: unit.seatsCoupeSecondClass,
+                    standingPlacesSecondClass: unit.standingPlacesSecondClass,
+                    hasSemiAutomaticInteriorDoors: unit.hasSemiAutomaticInteriorDoors === '1',
+                },
+                hasToilets: unit.hasToilets === '1',
+                hasSecondClassOutlets: unit.hasSecondClassOutlets === '1',
+                hasFirstClassOutlets: unit.hasFirstClassOutlets === '1',
+                hasHeating: unit.hasHeating === '1',
+                hasAirco: unit.hasAirco === '1',
+                canPassToNextUnit: unit.canPassToNextUnit === '1',
+                tractionPosition: unit.tractionPosition,
+                hasPrmSection: unit.hasPrmSection === '1',
+                hasPriorityPlaces: unit.hasPriorityPlaces === '1',
+                hasBikeSection: unit.hasBikeSection === '1',
+            });
+        }
+
+        compositionOutput.push(segmentData);
+    }
+
+    return compositionOutput;
 }
