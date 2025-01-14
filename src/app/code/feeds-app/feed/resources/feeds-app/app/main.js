@@ -4,7 +4,9 @@ const embarkmentStatisticsUrl = 'https://raw.githubusercontent.com/iRail/station
 const alternativeStationFields = ['alternative-fr', 'alternative-nl', 'alternative-de', 'alternative-en'];
 
 const stationLiveboardCacheTtl = '30';
+const stationLiveboardErrorTtl = '10';
 const stationLiveboardUpdateInterval = '60';
+const stationLiveboardUpdateIntervalError = '10';
 const stationLiveboardCache = {};
 
 export function bootstrap() {
@@ -145,7 +147,11 @@ async function fetchLiveboard(station, settings) {
 
     stationLiveboardCache[station] = {
         data: finalResults,
-        ttl: Date.now() + (stationLiveboardCacheTtl * 1000),
+        ttl: Date.now() + ((
+            results.ok
+                ? stationLiveboardCacheTtl
+                : stationLiveboardErrorTtl
+        ) * 1000),
         requestedAt,
     };
 
@@ -183,7 +189,9 @@ async function fetchVehicleComposition(vehicleId) {
     const cacheData = {
         data: finalResults,
         ttl: Date.now() + (
-            results.ok ? CACHE_KEY_VEHICLE_COMPOSITION_TTL : 60 * 1000
+            results.ok
+                ? CACHE_KEY_VEHICLE_COMPOSITION_TTL
+                : (stationLiveboardErrorTtl * 1000)
         ),
         requestedAt,
     };
