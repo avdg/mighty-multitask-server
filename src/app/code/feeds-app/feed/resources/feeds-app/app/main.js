@@ -436,11 +436,17 @@ export function getStationSuggestions(searchString, resultCount) {
     for (const station of globalThis.stations) {
         // Check main station name
         const stationNameNormalized = normalizeStationName(station.name ?? '');
-        if (stationNameNormalized && stationNameNormalized.includes(lookFor)) {
+        const stationNameWithoutSpaces = stationNameNormalized.replace(/\s/g, '');
+        if (stationNameNormalized && (
+            stationNameNormalized.includes(lookFor) ||
+            stationNameWithoutSpaces.includes(lookFor.replace(/\s/g, ''))
+        )) {
             stations.push({
                 name: station.name,
                 matchingName: stationNameNormalized,
-                suggestion: stationNameNormalized,
+                suggestion: stationNameNormalized.includes(lookFor)
+                    ? station.name
+                    : `${stationNameWithoutSpaces.toUpperCase()} -> ${station.name.toUpperCase()}`,
             });
             continue;
         }
