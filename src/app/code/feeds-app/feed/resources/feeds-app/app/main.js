@@ -338,11 +338,11 @@ async function updateLiveboardFromSelectedStation() {
             const minutes = Math.floor(departure.delay / 60);
             const seconds = departure.delay % 60;
             const estimatedDepartureTime = new Date(((+departure.time) + (+departure.delay)) * 1000);
+            cellTimeContent += `&nbsp;+${minutes}m`;
             if (seconds > 0) {
-                cellTimeContent += ` +${minutes}m ${seconds}s)`;
-            } else {
-                cellTimeContent += ` +${minutes}m)`;
+                cellTimeContent += `&nbsp;${seconds}s)`;
             }
+            cellTimeContent += ")";
 
             cellTimeContent = `${estimatedDepartureTime.toLocaleTimeString(
                 undefined,
