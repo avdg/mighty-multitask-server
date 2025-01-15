@@ -185,9 +185,10 @@ async function fetchVehicleComposition(vehicleId) {
     const requestedAt = Date.now();
     const results = await rateLimitIrailApi(() => fetch(url));
     const finalResults = await results.json();
+    const parsedResults = parseCompositionData(finalResults);
 
     const cacheData = {
-        data: finalResults,
+        data: parsedResults,
         ttl: Date.now() + (
             results.ok
                 ? CACHE_KEY_VEHICLE_COMPOSITION_TTL
@@ -199,6 +200,11 @@ async function fetchVehicleComposition(vehicleId) {
     storage.setItem(CACHE_KEY_VEHICLE_COMPOSITION_PREFIX + vehicleId, JSON.stringify(cacheData));
 
     return cacheData;
+}
+
+function hasVehicleCompositionInCache(vehicleId) {
+    const storage = getSessionStorage();
+    return storage.getItem(CACHE_KEY_VEHICLE_COMPOSITION_PREFIX + vehicleId);
 }
 
 /***** content loaders *****/
@@ -385,7 +391,10 @@ async function updateLiveboardFromSelectedStation() {
         autoRefreshLiveboard(selectedStationHolder.dataset.selectedStation);
     }, stationLiveboardUpdateInterval * 1000);
 
-    // TMP code
+    // TMP code behind ?test=1 flag
+    if (new URLSearchParams(window.location.search).get('test') !== '1') {
+        return;
+    }
     let bestId = null;
     for (const departure of liveboardResults.data.departures.departure) {
         if (departure.canceled === '1') {
@@ -396,15 +405,36 @@ async function updateLiveboardFromSelectedStation() {
             continue;
         }
 
+        if (hasVehicleCompositionInCache(departure.vehicle)) {
+            const trainDataTableRow = document.querySelector('tr[data-vehicle-id="' + departure.vehicle + '"]');
+            if (trainDataTableRow) {
+                const trainDataCell = document.createElement('td');
+                trainDataCell.colSpan = 4;
+                trainDataCell.appendChild(renderCompositionData(
+                    JSON.parse(getSessionStorage().getItem(CACHE_KEY_VEHICLE_COMPOSITION_PREFIX + departure.vehicle)).data
+                ));
+                trainDataTableRow.appendChild(trainDataCell);
+            }
+        }
+
+        if (bestId) {
+            continue;
+        }
+
         bestId = departure.vehicle;
-        break;
     }
 
     if (bestId) {
         const vehicleComposition = await fetchVehicleComposition(bestId);
         console.log(vehicleComposition);
-        const parsedVehicleCompositionData = parseCompositionData(vehicleComposition.data);
-        console.log(parsedVehicleCompositionData);
+
+        const trainDataTableRow = document.querySelector('tr[data-vehicle-id="' + bestId + '"]');
+        if (trainDataTableRow) {
+            const trainDataCell = document.createElement('td');
+            trainDataCell.colSpan = 4;
+            trainDataCell.appendChild(renderCompositionData(vehicleComposition.data));
+            trainDataTableRow.appendChild(trainDataCell);
+        }
     }
 }
 
@@ -551,6 +581,7 @@ function parseCompositionData(data) {
         const segmentData = {
             origin: segment.origin.standardname,
             destination: segment.destination.standardname,
+            source: segment.composition.source,
             units: [],
         };
 
@@ -562,12 +593,12 @@ function parseCompositionData(data) {
                     materialSubTypeName: unit.materialSubTypeName,
                     tractionType: unit.tractionType,
                     lengthInMeter: unit.lengthInMeter,
-                    seatsFirstClass: unit.seatsFirstClass,
-                    seatsCoupeFirstClass: unit.seatsCoupeFirstClass,
-                    standingPlacesFirstClass: unit.standingPlacesFirstClass,
-                    seatsSecondClass: unit.seatsSecondClass,
-                    seatsCoupeSecondClass: unit.seatsCoupeSecondClass,
-                    standingPlacesSecondClass: unit.standingPlacesSecondClass,
+                    seatsFirstClass: parseInt(unit.seatsFirstClass),
+                    seatsCoupeFirstClass: parseInt(unit.seatsCoupeFirstClass),
+                    standingPlacesFirstClass: parseInt(unit.standingPlacesFirstClass),
+                    seatsSecondClass: parseInt(unit.seatsSecondClass),
+                    seatsCoupeSecondClass: parseInt(unit.seatsCoupeSecondClass),
+                    standingPlacesSecondClass: parseInt(unit.standingPlacesSecondClass),
                     hasSemiAutomaticInteriorDoors: unit.hasSemiAutomaticInteriorDoors === '1',
                 },
                 hasToilets: unit.hasToilets === '1',
@@ -587,4 +618,47 @@ function parseCompositionData(data) {
     }
 
     return compositionOutput;
+}
+
+function renderCompositionData(data) {
+    // Create data from scratch
+    const compositionTable = document.createElement('table');
+    compositionTable.classList.add('composition-table');
+
+    for (const segment of data) {
+        const segmentRow = document.createElement('tr');
+        const segmentHeader = document.createElement('td');
+        segmentHeader.colSpan = 3;
+        segmentHeader.innerText = `${segment.origin} -> ${segment.destination}`;
+        segmentRow.appendChild(segmentHeader);
+        compositionTable.appendChild(segmentRow);
+
+        const unitPropertiesRow = document.createElement('tr');
+        const unitPropertiesCell = document.createElement('td');
+        unitPropertiesCell.colSpan = 3;
+        for (const unit of segment.units) {
+            const unitSpan = document.createElement('span');
+            unitSpan.classList.add('train-unit');
+            unitSpan.innerText = [
+                unit.materialType.parent_type,
+                unit.materialProperties.materialNumber,
+                unit.hasToilets ? '🚽' : null,
+                (unit.materialProperties.seatsFirstClass
+                    || unit.materialProperties.seatsSecondClass
+                    || unit.materialProperties.standingPlacesFirstClass
+                ) ? '1st' : null,
+                (unit.materialProperties.seatsSecondClass
+                    || unit.materialProperties.seatsFirstClass
+                    || unit.materialProperties.standingPlacesSecondClass
+                ) ? '2nd' : null,
+                unit.hasBikeSection ? '🚲' : null,
+                unit.hasPriorityPlaces ? '♿' : null,
+            ].filter(Boolean).join(' ');
+            unitPropertiesCell.appendChild(unitSpan);
+        }
+        unitPropertiesRow.appendChild(unitPropertiesCell);
+        compositionTable.appendChild(unitPropertiesRow);
+    }
+
+    return compositionTable;
 }
