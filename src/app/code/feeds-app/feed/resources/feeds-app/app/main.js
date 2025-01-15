@@ -517,8 +517,8 @@ function autoCompleteStations(element, selectedStationHolder) {
             updateLiveboardFromSelectedStation();
         } else if (results.length > 1 && (
             (matchingIndex = results.findIndex(
-                result => result.suggestion === currentInput
-                || result.suggestion.includes("(" + currentInput + ")")
+                result => result.matchingName === currentInput
+                || result.matchingName.includes("(" + currentInput + ")")
             )) >= 0
         )) {
             selectedStationHolder.innerText = results[matchingIndex].matchingName;
