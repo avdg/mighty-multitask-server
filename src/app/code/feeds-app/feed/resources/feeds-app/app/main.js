@@ -664,20 +664,21 @@ function renderCompositionData(data) {
             const unitSpan = document.createElement('span');
             unitSpan.classList.add('train-unit');
             unitSpan.innerText = [
-                unit.materialType.parent_type,
-                unit.materialProperties.materialNumber,
+                ((unit.materialType.parent_type ?? '') + ' '
+                    + (unit.materialProperties.materialNumber ?? '')
+                ).trim(),
                 unit.hasToilets ? '🚽' : null,
                 (unit.materialProperties.seatsFirstClass
-                    || unit.materialProperties.seatsSecondClass
-                    || unit.materialProperties.standingPlacesFirstClass
-                ) ? '1st' : null,
-                (unit.materialProperties.seatsSecondClass
                     || unit.materialProperties.seatsFirstClass
+                    || unit.materialProperties.standingPlacesFirstClass
+                ) ? '1️⃣' : null,
+                (unit.materialProperties.seatsSecondClass
+                    || unit.materialProperties.seatsSecondClass
                     || unit.materialProperties.standingPlacesSecondClass
-                ) ? '2nd' : null,
+                ) ? '2️⃣' : null,
                 unit.hasBikeSection ? '🚲' : null,
                 unit.hasPrmSection ? '♿' : null,
-            ].filter(Boolean).join(' ');
+            ].filter(Boolean).join('');
             unitPropertiesCell.appendChild(unitSpan);
         }
         unitPropertiesRow.appendChild(unitPropertiesCell);
