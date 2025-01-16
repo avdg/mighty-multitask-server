@@ -644,42 +644,124 @@ function parseCompositionData(data) {
     return compositionOutput;
 }
 
+const unitConditions = {
+    '🚽': function (unit) {
+        return unit.hasToilets;
+    },
+    '1️⃣': function (unit) {
+        return unit.materialProperties.seatsFirstClass > 0
+            || unit.materialProperties.coupeSeatsFirstClass > 0
+            || unit.materialProperties.standingPlacesFirstClass > 0;
+    },
+    '2️⃣': function (unit) {
+        return unit.materialProperties.seatsSecondClass > 0
+            || unit.materialProperties.coupeSeatsSecondClass > 0
+            || unit.materialProperties.standingPlacesSecondClass > 0;
+    },
+    '🚲': function (unit) {
+        return unit.hasBikeSection;
+    },
+    '♿': function (unit) {
+        return unit.hasPrmSection;
+    },
+};
 function renderCompositionData(data) {
     // Create data from scratch
     const compositionTable = document.createElement('table');
     compositionTable.classList.add('composition-table');
 
     for (const segment of data) {
-        const segmentRow = document.createElement('tr');
-        const segmentHeader = document.createElement('td');
-        segmentHeader.colSpan = 3;
-        segmentHeader.innerText = `${segment.origin} -> ${segment.destination}`;
-        segmentRow.appendChild(segmentHeader);
-        compositionTable.appendChild(segmentRow);
+        if (data.length > 1) {
+            const segmentRow = document.createElement('tr');
+            const segmentHeader = document.createElement('td');
+            segmentHeader.innerText = `${segment.origin} -> ${segment.destination}`;
+            segmentRow.appendChild(segmentHeader);
+            compositionTable.appendChild(segmentRow);
+        }
 
         const unitPropertiesRow = document.createElement('tr');
         const unitPropertiesCell = document.createElement('td');
-        unitPropertiesCell.colSpan = 3;
-        for (const unit of segment.units) {
+        for (let unitIndex = 0; unitIndex < segment.units.length; unitIndex++) {
+            const unit = segment.units[unitIndex];
             const unitSpan = document.createElement('span');
             unitSpan.classList.add('train-unit');
-            unitSpan.innerText = [
-                ((unit.materialType.parent_type ?? '') + ' '
-                    + (unit.materialProperties.materialNumber ?? '')
-                ).trim(),
-                unit.hasToilets ? '🚽' : null,
-                (unit.materialProperties.seatsFirstClass
-                    || unit.materialProperties.seatsFirstClass
-                    || unit.materialProperties.standingPlacesFirstClass
-                ) ? '1️⃣' : null,
-                (unit.materialProperties.seatsSecondClass
-                    || unit.materialProperties.seatsSecondClass
-                    || unit.materialProperties.standingPlacesSecondClass
-                ) ? '2️⃣' : null,
-                unit.hasBikeSection ? '🚲' : null,
-                unit.hasPrmSection ? '♿' : null,
-            ].filter(Boolean).join('');
+
+            let lastSameUnit = unitIndex;
+            while (
+                (lastSameUnit + 1) < segment.units.length
+                && segment.units[lastSameUnit + 1].materialType.parent_type === unit.materialType.parent_type
+                && segment.units[lastSameUnit + 1].materialProperties.materialNumber === unit.materialProperties.materialNumber
+            ) {
+                lastSameUnit++;
+            }
+            const groupedUnitCount = (lastSameUnit - unitIndex) + 1;
+
+            const materialTypeInfo = (
+                (unit.materialType.parent_type ?? '')
+                + ' '
+                + (unit.materialProperties.materialNumber ?? '')
+            ).trim();
+
+            if (groupedUnitCount <= 1) {
+                const unitPropertiesData = [materialTypeInfo];
+                for (const condition in unitConditions) {
+                    if (unitConditions[condition](unit)) {
+                        unitPropertiesData.push(condition);
+                    }
+                }
+
+                unitSpan.innerText = unitPropertiesData.filter(Boolean).join('');
+                unitPropertiesCell.appendChild(unitSpan);
+
+                continue;
+            }
+
+            const sharedProperties = [];
+            const uniqueProperties = [];
+            for (const condition in unitConditions) {
+                const firstConditionResult = unitConditions[condition](unit);
+                let allSame = true;
+                for (let i = unitIndex + 1; i <= lastSameUnit; i++) {
+                    if (firstConditionResult !== unitConditions[condition](segment.units[i])) {
+                        uniqueProperties.push(condition);
+                        allSame = false;
+                        break;
+                    }
+                }
+
+                if (allSame) {
+                    sharedProperties.push(condition);
+                }
+            }
+
+            unitSpan.innerText = materialTypeInfo;
+            for (const condition of sharedProperties) {
+                if (unitConditions[condition](unit)) {
+                    unitSpan.innerText += condition;
+                }
+            }
+            for (let i = unitIndex; i <= lastSameUnit; i++) {
+                let uniquePropertiesText = "";
+                for (const condition of uniqueProperties) {
+                    if (unitConditions[condition](segment.units[i])) {
+                        uniquePropertiesText += condition;
+                    }
+                }
+
+                // Create new span for each unit
+                const groupedUnitSpan = document.createElement('span');
+                groupedUnitSpan.classList.add('grouped-train-unit');
+                groupedUnitSpan.innerText += uniquePropertiesText;
+
+                if (groupedUnitSpan.innerText.length <= 0) {
+                    groupedUnitSpan.innerHTML = '&nbsp;&nbsp;&nbsp;';
+                }
+
+                unitSpan.appendChild(groupedUnitSpan);
+            }
+
             unitPropertiesCell.appendChild(unitSpan);
+            unitIndex = lastSameUnit;
         }
         unitPropertiesRow.appendChild(unitPropertiesCell);
         compositionTable.appendChild(unitPropertiesRow);
