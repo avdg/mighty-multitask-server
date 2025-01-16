@@ -618,6 +618,29 @@ function parseCompositionData(data) {
         compositionOutput.push(segmentData);
     }
 
+    // Attempt to find segments that are connected
+    for (let firstPos = 0; firstPos < compositionOutput.length; firstPos++) {
+        for (let secondPos = firstPos + 1; secondPos < compositionOutput.length; secondPos++) {
+            if (compositionOutput[firstPos].destination === compositionOutput[secondPos].origin
+                && JSON.stringify(compositionOutput[firstPos].units) === JSON.stringify(compositionOutput[secondPos].units)
+            ) {
+                compositionOutput[firstPos].destination = compositionOutput[secondPos].destination;
+                compositionOutput.splice(secondPos, 1);
+                secondPos--;
+                continue;
+            }
+
+            if (compositionOutput[firstPos].origin === compositionOutput[secondPos].destination
+                && JSON.stringify(compositionOutput[firstPos].units) === JSON.stringify(compositionOutput[secondPos].units)
+            ) {
+                compositionOutput[firstPos].origin = compositionOutput[secondPos].origin;
+                compositionOutput.splice(secondPos, 1);
+                secondPos--;
+                continue;
+            }
+        }
+    }
+
     return compositionOutput;
 }
 
