@@ -415,6 +415,7 @@ async function updateLiveboardFromSelectedStation() {
                 ));
                 trainDataTableRow.appendChild(trainDataCell);
             }
+            continue;
         }
 
         if (bestId) {
