@@ -653,7 +653,7 @@ function renderCompositionData(data) {
                     || unit.materialProperties.standingPlacesSecondClass
                 ) ? '2nd' : null,
                 unit.hasBikeSection ? '🚲' : null,
-                unit.hasPriorityPlaces ? '♿' : null,
+                unit.hasPrmSection ? '♿' : null,
             ].filter(Boolean).join(' ');
             unitPropertiesCell.appendChild(unitSpan);
         }
