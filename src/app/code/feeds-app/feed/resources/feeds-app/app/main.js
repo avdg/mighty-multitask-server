@@ -161,7 +161,7 @@ async function fetchLiveboard(station, settings) {
 const CACHE_KEY_VEHICLE_COMPOSITION_PREFIX = 'vehicle_composition_';
 const CACHE_KEY_VEHICLE_COMPOSITION_TTL = 10 * 60 * 1000;
 async function fetchVehicleComposition(vehicleId) {
-    // Use an Object that can simluate localStorage if no localStorage is available
+    // Use an Object that can simluate sessionStorage if no sessionStorage is available
     const storage = getSessionStorage();
 
     if (storage.getItem(CACHE_KEY_VEHICLE_COMPOSITION_PREFIX + vehicleId)) {
@@ -255,9 +255,9 @@ export function normalizeStationName(stationName) {
 }
 
 export function getSessionStorage() {
-    return window.localStorage || (function() {
-        if (window.alternativeLocalStorage) {
-            return window.alternativeLocalStorage;
+    return window.sessionStorage || (function() {
+        if (window.alternativeSessionStorage) {
+            return window.alternativeSessionStorage;
         }
 
         const storage = {};
@@ -268,7 +268,7 @@ export function getSessionStorage() {
             storage[key] = value;
         }
 
-        window.alternativeLocalStorage = storage;
+        window.alternativeSessionStorage = storage;
         return storage;
     })();
 }
