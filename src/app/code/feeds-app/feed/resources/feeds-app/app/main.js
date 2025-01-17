@@ -242,16 +242,16 @@ export function sleep(ms) {
 
 export function normalizeStationName(stationName) {
     return stationName
+    .replace(/[\-']/g, ' ')
     .trim()
     .toUpperCase()
-    .replace(/[\-']/g, ' ')
     .replace(/[ÂÀÁ]/g, 'A')
     .replace(/[ÉÈÊË]/g, 'E')
     .replace(/[ÎÍ]/g, 'I')
     .replace(/[ÔÖ]/g, 'O')
     .replace(/[ÜÛ]/g, 'U')
     .replace(/Ž/g, 'Z')
-    .replace(/Œ/g, 'OE');
+    .replace(/Œ/g, 'OE')
 }
 
 export function getSessionStorage() {
