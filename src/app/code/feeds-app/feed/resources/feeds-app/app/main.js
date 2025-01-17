@@ -484,7 +484,7 @@ export function getStationSuggestions(searchString, resultCount) {
                 name: station.name,
                 matchingName: stationNameNormalized,
                 suggestion: stationNameNormalized.includes(lookFor)
-                    ? station.name
+                    ? stationNameNormalized
                     : `${stationNameWithoutSpaces.toUpperCase()} -> ${station.name.toUpperCase()}`,
             });
             continue;
