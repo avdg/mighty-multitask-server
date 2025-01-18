@@ -3,10 +3,12 @@ const stationsUrl = 'https://raw.githubusercontent.com/iRail/stations/refs/heads
 const embarkmentStatisticsUrl = 'https://raw.githubusercontent.com/iRail/stations/refs/heads/master/embarkment_statistics.csv';
 const alternativeStationFields = ['alternative-fr', 'alternative-nl', 'alternative-de', 'alternative-en'];
 
-const stationLiveboardCacheTtl = '30';
-const stationLiveboardErrorTtl = '10';
-const stationLiveboardUpdateInterval = '60';
-const stationLiveboardUpdateIntervalError = '10';
+const stationLiveboardCacheTtl = 30;
+const stationLiveboardErrorTtl = 10;
+const stationLiveboardUpdateInterval = 60;
+const stationLiveboardUpdateIntervalError = 10;
+const vehicleCompositionCacheTtl = 30 * 60;
+const trainCompositionFetchInterval = .8;
 const stationLiveboardCache = {};
 
 export function bootstrap() {
@@ -43,10 +45,13 @@ async function rateLimitIrailApi(callback) {
     }
 
     currentAllowedRate--;
+    const result = await callback();
+
     setTimeout(() => {
         currentAllowedRate++;
     }, 1000);
-    return await callback();
+
+    return result;
 }
 
 /***** external data fetchers *****/
@@ -189,12 +194,13 @@ async function fetchVehicleComposition(vehicleId) {
 
     const cacheData = {
         data: parsedResults,
-        ttl: Date.now() + (
+        ttl: Date.now() + ((
             results.ok
-                ? CACHE_KEY_VEHICLE_COMPOSITION_TTL
-                : (stationLiveboardErrorTtl * 1000)
-        ),
+                ? vehicleCompositionCacheTtl
+                : stationLiveboardErrorTtl
+        ) * 1000),
         requestedAt,
+        status: results.ok ? 'ok' : 'error',
     };
 
     storage.setItem(CACHE_KEY_VEHICLE_COMPOSITION_PREFIX + vehicleId, JSON.stringify(cacheData));
@@ -273,6 +279,27 @@ export function getSessionStorage() {
     })();
 }
 
+export function isVehicleWithComposition(liveboardResults, vehicle) {
+    if (!liveboardResults.data.departures?.departure) {
+        return false;
+    }
+
+    for (const departure of liveboardResults.data.departures.departure) {
+        if (departure.vehicle !== vehicle) {
+            continue;
+        }
+
+        // Skip bus or canceled departures
+        if (departure.vehicleinfo?.type === 'BUS' || departure.canceled === '1') {
+            return false;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
 /***** app *****/
 
 export async function showPickStation() {
@@ -289,6 +316,19 @@ export async function showPickStation() {
     stationInput.addEventListener('keyup', autoCompleteStations(stationInput, selectedStationHolder));
     stationInput.addEventListener('focus', autoCompleteStations(stationInput, selectedStationHolder));
     stationInput.addEventListener('input', autoCompleteStations(stationInput, selectedStationHolder));
+
+    const materialInfoToggleButtons = document.querySelectorAll('.material-info-toggle-button');
+    materialInfoToggleButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            const timeTable = document.getElementById('timetable-table');
+            if (timeTable.classList.contains('hide-material-type-info')) {
+                timeTable.classList.remove('hide-material-type-info');
+                return;
+            }
+
+            timeTable.classList.add('hide-material-type-info');
+        });
+    });
 }
 
 let lastLiveboardUpdate = 0;
@@ -346,14 +386,13 @@ async function updateLiveboardFromSelectedStation() {
             const estimatedDepartureTime = new Date(((+departure.time) + (+departure.delay)) * 1000);
             cellTimeContent += `&nbsp;+${minutes}m`;
             if (seconds > 0) {
-                cellTimeContent += `&nbsp;${seconds}s)`;
+                cellTimeContent += `&nbsp;${seconds}s`;
             }
-            cellTimeContent += ")";
 
-            cellTimeContent = `${estimatedDepartureTime.toLocaleTimeString(
+            cellTimeContent = `<span>${estimatedDepartureTime.toLocaleTimeString(
                 undefined,
                 {hour: '2-digit', minute: '2-digit'}
-            )} <br>(${cellTimeContent}`;
+            )}</span><br>${cellTimeContent}`;
         }
         cellTime.innerHTML = cellTimeContent;
         row.appendChild(cellTime);
@@ -390,26 +429,26 @@ async function updateLiveboardFromSelectedStation() {
     setTimeout(() => {
         autoRefreshLiveboard(selectedStationHolder.dataset.selectedStation);
     }, stationLiveboardUpdateInterval * 1000);
+    setTimeout(() => {
+        fetchMissingTrainCompositions(liveboardResults);
+    }, trainCompositionFetchInterval * 1000);
 
-    // TMP code behind ?test=1 flag
-    if (new URLSearchParams(window.location.search).get('test') !== '1') {
-        return;
-    }
     let bestId = null;
     for (const departure of liveboardResults.data.departures.departure) {
-        if (departure.canceled === '1') {
+        if (!isVehicleWithComposition(liveboardResults, departure.vehicle)) {
             continue;
         }
 
-        if (departure.vehicleinfo?.type === 'BUS') {
+        const trainDataTableRow = document.querySelector('tr[data-vehicle-id="' + departure.vehicle + '"]');
+
+        if (trainDataTableRow.querySelector('.train-composition')) {
             continue;
         }
 
         if (hasVehicleCompositionInCache(departure.vehicle)) {
-            const trainDataTableRow = document.querySelector('tr[data-vehicle-id="' + departure.vehicle + '"]');
             if (trainDataTableRow) {
                 const trainDataCell = document.createElement('td');
-                trainDataCell.colSpan = 4;
+                trainDataCell.classList.add('train-composition');
                 trainDataCell.appendChild(renderCompositionData(
                     JSON.parse(getSessionStorage().getItem(CACHE_KEY_VEHICLE_COMPOSITION_PREFIX + departure.vehicle)).data
                 ));
@@ -430,10 +469,10 @@ async function updateLiveboardFromSelectedStation() {
         console.log(vehicleComposition);
 
         const trainDataTableRow = document.querySelector('tr[data-vehicle-id="' + bestId + '"]');
-        if (trainDataTableRow) {
+        if (trainDataTableRow && !trainDataTableRow.querySelector('.train-composition')) {
             const trainDataCell = document.createElement('td');
-            trainDataCell.colSpan = 4;
             trainDataCell.appendChild(renderCompositionData(vehicleComposition.data));
+            trainDataCell.classList.add('train-composition');
             trainDataTableRow.appendChild(trainDataCell);
         }
     }
@@ -460,6 +499,49 @@ function hideLiveboard() {
     const timeTableBody = liveboardElement.querySelector('tbody');
     while (timeTableBody.firstChild) {
         timeTableBody.removeChild(timeTableBody.firstChild);
+    }
+}
+
+let activeTrainCompositionFetcherId = 0;
+function fetchMissingTrainCompositions(liveboardResults) {
+    const currentTrainCompositionFetcherId = ++activeTrainCompositionFetcherId;
+    const departureTable = document.getElementById('timetable-table');
+    const vehicleIdElements = departureTable.querySelectorAll('tr[data-vehicle-id]');
+
+    for (const vehicleIdElement of vehicleIdElements) {
+        const vehicleId = vehicleIdElement.dataset.vehicleId;
+
+        if (!isVehicleWithComposition(liveboardResults, vehicleId)) {
+            continue;
+        }
+
+        if (hasVehicleCompositionInCache(vehicleId)) {
+            continue;
+        }
+
+        fetchVehicleComposition(vehicleId).then(vehicleComposition => {
+            // Skip if row already has composition data
+            if (vehicleIdElement.querySelector('.train-composition')) {
+                return;
+            }
+            const trainDataCell = document.createElement('td');
+            trainDataCell.appendChild(renderCompositionData(vehicleComposition.data));
+            trainDataCell.classList.add('train-composition');
+            vehicleIdElement.appendChild(trainDataCell);
+        }).finally(async () => {
+            // Check if a newer fetcher is active
+            if (currentTrainCompositionFetcherId !== activeTrainCompositionFetcherId) {
+                return;
+            }
+
+            while (currentAllowedRate <= 2) {
+                await sleep(500);
+            }
+
+            setTimeout(() => {
+                fetchMissingTrainCompositions(liveboardResults);
+            }, trainCompositionFetchInterval * 1000);
+        });
     }
 }
 
@@ -645,9 +727,6 @@ function parseCompositionData(data) {
 }
 
 const unitConditions = {
-    '🚽': function (unit) {
-        return unit.hasToilets;
-    },
     '1️⃣': function (unit) {
         return unit.materialProperties.seatsFirstClass > 0
             || unit.materialProperties.coupeSeatsFirstClass > 0
@@ -663,6 +742,9 @@ const unitConditions = {
     },
     '♿': function (unit) {
         return unit.hasPrmSection;
+    },
+    '🚽': function (unit) {
+        return unit.hasToilets;
     },
 };
 function renderCompositionData(data) {
@@ -701,16 +783,20 @@ function renderCompositionData(data) {
                 + ' '
                 + (unit.materialProperties.materialNumber ?? '')
             ).trim();
+            const materialTypeInfoSpan = document.createElement('span');
+            materialTypeInfoSpan.innerText = materialTypeInfo;
+            materialTypeInfoSpan.classList.add('material-type-info');
 
             if (groupedUnitCount <= 1) {
-                const unitPropertiesData = [materialTypeInfo];
+                const unitPropertiesData = [];
                 for (const condition in unitConditions) {
                     if (unitConditions[condition](unit)) {
                         unitPropertiesData.push(condition);
                     }
                 }
 
-                unitSpan.innerText = unitPropertiesData.filter(Boolean).join('');
+                unitSpan.appendChild(materialTypeInfoSpan);
+                unitSpan.appendChild(document.createTextNode(unitPropertiesData.filter(Boolean).join('')));
                 unitPropertiesCell.appendChild(unitSpan);
 
                 continue;
@@ -734,12 +820,14 @@ function renderCompositionData(data) {
                 }
             }
 
-            unitSpan.innerText = materialTypeInfo;
+            unitSpan.appendChild(materialTypeInfoSpan);
+            let unitMaterialInfo = '';
             for (const condition of sharedProperties) {
                 if (unitConditions[condition](unit)) {
-                    unitSpan.innerText += condition;
+                    unitMaterialInfo += condition;
                 }
             }
+            unitSpan.appendChild(document.createTextNode(unitMaterialInfo));
             for (let i = unitIndex; i <= lastSameUnit; i++) {
                 let uniquePropertiesText = "";
                 for (const condition of uniqueProperties) {
