@@ -35,6 +35,51 @@ async function loadAppContent() {
     ]);
 }
 
+function shareCurrentUrl() {
+    if (!window.QRCode) {
+        console.error('QRCode not available');
+        return;
+    }
+
+    let qrShareContainer = document.getElementById('qr-share-container');
+    if (!qrShareContainer) {
+        qrShareContainer = document.createElement('div');
+        qrShareContainer.id = 'qr-share-container';
+        qrShareContainer.onclick = function(e) {
+            if (e.target === this) {
+                qrShareContainer.classList.remove('enabled');
+            }
+        };
+        document.body.appendChild(qrShareContainer);
+    }
+
+    let qrShareContent = document.getElementById('qr-share-container-content');
+    if (!qrShareContent) {
+        qrShareContent = document.createElement('div');
+        qrShareContent.id = 'qr-share-container-content';
+        qrShareContainer.appendChild(qrShareContent);
+    }
+
+    qrShareContent.innerHTML = '';
+
+    const qrShareContainerTitle = document.createElement('h1');
+    qrShareContainerTitle.innerText = 'Use the QR code to share this page';
+    qrShareContent.appendChild(qrShareContainerTitle);
+
+    const qrDimensions = Math.min(document.body.offsetWidth, document.body.offsetHeight) * .4;
+    new QRCode('qr-share-container-content', {
+        text: window.location.href,
+        width: qrDimensions,
+        height: qrDimensions,
+        correctionLevel: QRCode.CorrectLevel.H,
+    });
+    qrShareContainer.classList.add('enabled');
+    
+    const linkUrl = document.createElement('div');
+    linkUrl.innerText = window.location.href;
+    qrShareContent.appendChild(linkUrl);
+}
+
 /***** rate limit controller for external data fetchers *****/
 
 const rateLimitIrailApiPerSec = 3;
@@ -352,6 +397,11 @@ export async function showPickStation() {
         stationInput.value = hashbangData.get('station');
         autoCompleteStations(stationInput, selectedStationHolder)();
     }
+
+    const shareButton = document.querySelectorAll('.qr-share-url');
+    shareButton.forEach(button => {
+        button.addEventListener('click', shareCurrentUrl);
+    });
 }
 
 let lastLiveboardUpdate = 0;
