@@ -302,6 +302,23 @@ export function isVehicleWithComposition(liveboardResults, vehicle) {
 
 /***** app *****/
 
+export function fetchHashData() {
+    const hash = window.location.hash;
+    if (!hash) {
+        return new URLSearchParams();
+    }
+
+    return new URLSearchParams(hash.slice(1));
+}
+
+export function updateHashData(data) {
+    if (!(data instanceof URLSearchParams)) {
+        data = new URLSearchParams(data);
+    }
+
+    window.location.hash = '#' + (data).toString();
+}
+
 export async function showPickStation() {
     await loadContent(
         new URL(
@@ -329,6 +346,12 @@ export async function showPickStation() {
             timeTable.classList.add('hide-material-type-info');
         });
     });
+
+    const hashbangData = fetchHashData();
+    if (hashbangData.has('station')) {
+        stationInput.value = hashbangData.get('station');
+        autoCompleteStations(stationInput, selectedStationHolder)();
+    }
 }
 
 let lastLiveboardUpdate = 0;
@@ -624,10 +647,15 @@ function autoCompleteStations(element, selectedStationHolder) {
 
         const currentInput = normalizeStationName(element.value);
         let matchingIndex = -1;
+        const hashbangData = fetchHashData();
         if (results.length === 1) {
             selectedStationHolder.innerText = results[0].matchingName;
             selectedStationHolder.dataset.selectedStation = results[0].name;
             updateLiveboardFromSelectedStation();
+            
+            hashbangData.set('station', currentInput);
+            hashbangData.set('mode', 'station');
+            updateHashData(hashbangData);
         } else if (results.length > 1 && (
             (matchingIndex = results.findIndex(
                 result => result.matchingName === currentInput
@@ -637,10 +665,19 @@ function autoCompleteStations(element, selectedStationHolder) {
             selectedStationHolder.innerText = results[matchingIndex].matchingName;
             selectedStationHolder.dataset.selectedStation = results[matchingIndex].name;
             updateLiveboardFromSelectedStation();
+
+            hashbangData.set('station', currentInput);
+            hashbangData.set('mode', 'station');
+            updateHashData(hashbangData);
         } else if (selectedStationHolder.innerText.length > 0) {
             selectedStationHolder.innerText = '';
             selectedStationHolder.dataset.selectedStation = undefined;
             hideLiveboard();
+
+            if (hashbangData.has('station')) {
+                hashbangData.delete('station');
+                updateHashData(hashbangData);
+            }
         }
 
         lastAutoCompletedStation = element.value;
