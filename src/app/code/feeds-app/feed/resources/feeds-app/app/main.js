@@ -835,21 +835,20 @@ const unitConditions = {
     },
 };
 function renderCompositionData(data) {
-    // Create data from scratch
-    const compositionTable = document.createElement('table');
-    compositionTable.classList.add('composition-table');
+    const compositionList = document.createElement('ul');
+    compositionList.classList.add('composition-list');
 
     for (const segment of data) {
+        const segmentListItem = document.createElement('li');
+        compositionList.appendChild(segmentListItem);
+
         if (data.length > 1) {
-            const segmentRow = document.createElement('tr');
-            const segmentHeader = document.createElement('td');
+            const segmentHeader = document.createElement('div');
+            segmentHeader.classList.add('segment-header');
             segmentHeader.innerText = `${segment.origin} -> ${segment.destination}`;
-            segmentRow.appendChild(segmentHeader);
-            compositionTable.appendChild(segmentRow);
+            segmentListItem.appendChild(segmentHeader);
         }
 
-        const unitPropertiesRow = document.createElement('tr');
-        const unitPropertiesCell = document.createElement('td');
         for (let unitIndex = 0; unitIndex < segment.units.length; unitIndex++) {
             const unit = segment.units[unitIndex];
             const unitSpan = document.createElement('span');
@@ -884,7 +883,7 @@ function renderCompositionData(data) {
 
                 unitSpan.appendChild(materialTypeInfoSpan);
                 unitSpan.appendChild(document.createTextNode(unitPropertiesData.filter(Boolean).join('')));
-                unitPropertiesCell.appendChild(unitSpan);
+                segmentListItem.appendChild(unitSpan);
 
                 continue;
             }
@@ -935,12 +934,11 @@ function renderCompositionData(data) {
                 unitSpan.appendChild(groupedUnitSpan);
             }
 
-            unitPropertiesCell.appendChild(unitSpan);
+            segmentListItem.appendChild(unitSpan);
             unitIndex = lastSameUnit;
         }
-        unitPropertiesRow.appendChild(unitPropertiesCell);
-        compositionTable.appendChild(unitPropertiesRow);
+        compositionList.appendChild(segmentListItem);
     }
 
-    return compositionTable;
+    return compositionList;
 }
