@@ -60,6 +60,9 @@
             width: 100%;
             border-collapse: collapse;
         }
+        #timetable-table tr {
+            height: 2em;
+        }
         #qr-share-container {
             display: none;
             position: fixed;
@@ -123,7 +126,11 @@
             background-color: #993333;
             color: #ffffff;
         }
-        .composition-table span {
+        .composition-list {
+            list-style: none;
+            margin: 0;
+        }
+        .composition-list span {
             margin-right: 0.1em;
         }
         .train-unit {
@@ -133,7 +140,7 @@
             min-height: 1.1em;
             display: inline-block;
         }
-        .train-unit:first-child {
+        .train-unit:first-child, .segment-header + .train-unit {
             margin-left: 0.1em;
             border-radius: 10px 3px 3px 3px;
         }
