@@ -26,6 +26,9 @@ There are three types of migrations:
                         Only scripts with a higher version number than the current version will be run.
                         After a script is run, the version number of the migration script is stored in the db.
 
+                        For now, an `id` column will be created every time a new table is created.
+                        The column definition is hardcoded to `id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT`.
+
 The db schemas should be defined in the app module at `config/appDbSchemas.js`.
 
 Example of a db migration config script:
