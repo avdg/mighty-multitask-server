@@ -19,7 +19,7 @@
     "lodash.mergewith": "^4.6.2"
   },
   "author": "Anthony Van de Gejuchte",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/avdg/mighty-multitask-server/issues"
   },

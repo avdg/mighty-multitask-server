@@ -15,7 +15,7 @@
       "@mighty-multitask-server/webserver-util": "file:./lib/mighty-multitask-server/webserver-util"
     },
     "author": "Anthony Van de Gejuchte",
-    "license": "UNLICENSED",
+    "license": "MIT",
     "bugs": {
       "url": "https://github.com/avdg/mighty-multitask-server/issues"
     },
