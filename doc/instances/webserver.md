@@ -36,7 +36,12 @@ export default {
             //     which also means that the request will be
             //     passed to next route handlers
         },
-    }
+    },
+    bootHandlers: [
+        function (state) {
+            // This function is called after the web server has started
+        },
+    ],
 }
 ```
 
