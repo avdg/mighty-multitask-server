@@ -66,8 +66,7 @@ This document provides a step-by-step guide to setting up and running the "hello
      "dependencies": {
        "@mighty-multitask-server/boot": "file:./mighty-multitask-server/lib/mighty-multitask-server/boot",
        "@mighty-multitask-server/core-api": "file:./mighty-multitask-server/lib/mighty-multitask-server/core-api",
-       "@mighty-multitask-server/webserver-util": "file:./mighty-multitask-server/lib/mighty-multitask-server/webserver-util",
-       "lodash.mergewith": "^4.6.2"
+       "@mighty-multitask-server/webserver-util": "file:./mighty-multitask-server/lib/mighty-multitask-server/webserver-util"
      },
      "author": "",
      "license": "ISC"
@@ -77,13 +76,12 @@ This document provides a step-by-step guide to setting up and running the "hello
    > [!NOTE]
    > Alternatively, you can add the submodules as dependencies in your `package.json` and install them using `npm install`. This can be a more convenient way to manage the dependencies, as you won't need to manually initialize and update the submodules. After running `npm install`, the packages will be available in your `node_modules` directory.
    >
-   > ```json
-   > "dependencies": {
-   >   "@mighty-multitask-server/boot": "github:avdg/mighty-multitask-server#lib/mighty-multitask-server/boot",
-   >   "@mighty-multitask-server/core-api": "github:avdg/mighty-multitask-server#lib/mighty-multitask-server/core-api",
-   >   "@mighty-multitask-server/webserver-util": "github:avdg/mighty-multitask-server#lib/mighty-multitask-server/webserver-util",
-   >   "lodash.mergewith": "^4.6.2"
-   > }
+   > Here is the npm i command to install the 3 packages, you just need to adjust the relative path of each package:
+   >
+   > ```bash
+   > npm install mighty-multitask-server/lib/mighty-multitask-server/boot
+   > npm install mighty-multitask-server/lib/mighty-multitask-server/core-api
+   > npm install mighty-multitask-server/lib/mighty-multitask-server/webserver-util
    > ```
 
 6. **Initialize a node project:**
