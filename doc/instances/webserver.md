@@ -20,6 +20,25 @@ export default {
 }
 ```
 
+When given the properties `sslPort`, `sslKeyFile` and `sslCertFile`,
+the web server will also start an HTTPS server.
+
+There is no support implemented yet for certificate hot reloading.
+
+```js
+import { join as pathJoin } from 'node:path';
+
+export default {
+    webserver: {
+        hostname: 'localhost',
+        port: 43211,
+        sslPort: 43212,
+        sslKey: '/path/to/ssl/key/file.pem',
+        sslCert: pathJoin(import.meta.dirname, '../../../path/to/ssl/cert/file.pem'),
+    },
+}
+```
+
 ## App module specific configuration
 
 The web server configuration is defined in the app module at `config/webserver_config.js`.
