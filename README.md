@@ -1,6 +1,6 @@
-## Running the bot
+## Running the server
 
-Use the following command to run the bot:
+Use the following command to run the server:
 
 ```bash
 npm run server
