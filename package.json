@@ -6,7 +6,8 @@
   "main": "index.js",
   "scripts": {
     "server": "node --experimental-sqlite index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm --prefix lib/mighty-multitask-server/webserver-util test",
+    "test:webserver-util": "npm --prefix lib/mighty-multitask-server/webserver-util test"
   },
   "repository": {
     "type": "git",
